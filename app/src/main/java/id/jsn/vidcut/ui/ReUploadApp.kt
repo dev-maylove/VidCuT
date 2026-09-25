@@ -5,8 +5,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -253,10 +251,10 @@ private fun StudioWorkspace(vm: ProjectViewModel, onBack: () -> Unit) {
                 vm = vm,
                 onClose = { tool = StudioTool.None }
             )
-            else -> MainToolbar(onSelect = { tool = it }, onExport = {
-                // jump to render actions inside Format/Edit via dedicated panel
-                tool = StudioTool.Edit
-            })
+            else -> MainToolbar(
+                onSelect = { tool = it },
+                onExport = { tool = StudioTool.Format }
+            )
         }
     }
 
@@ -362,7 +360,7 @@ private fun TimelineStrip(
                     FilterChip(
                         selected = vm.selectedClipId == c.id,
                         onClick = {
-                            // select clip → contextual menu
+                            vm.selectClip(c.id)
                             onClipSelected()
                         },
                         label = { Text(c.name.take(12)) }
@@ -385,32 +383,37 @@ private fun TimelineStrip(
 }
 
 @Composable
-private fun MainToolbar(onSelect: (StudioTool) -> Unit, onExport: () -> Unit) {
+private fun MainToolbar(onSelect: (StudioTool) -> Unit, onExport: () -> Unit = {}) {
+    data class ToolItem(val tool: StudioTool, val icon: androidx.compose.ui.graphics.vector.ImageVector, val label: String)
     val items = listOf(
-        StudioTool.Edit to (Icons.Default.ContentCut to "Edit"),
-        StudioTool.Audio to (Icons.Default.MusicNote to "Audio"),
-        StudioTool.Teks to (Icons.Default.Title to "Teks"),
-        StudioTool.Overlay to (Icons.Default.Layers to "Overlay"),
-        StudioTool.Efek to (Icons.Default.AutoAwesome to "Efek"),
-        StudioTool.Filter to (Icons.Default.Tune to "Filter"),
-        StudioTool.Format to (Icons.Default.AspectRatio to "Format")
+        ToolItem(StudioTool.Edit, Icons.Default.ContentCut, "Edit"),
+        ToolItem(StudioTool.Audio, Icons.Default.MusicNote, "Audio"),
+        ToolItem(StudioTool.Teks, Icons.Default.Title, "Teks"),
+        ToolItem(StudioTool.Overlay, Icons.Default.Layers, "Overlay"),
+        ToolItem(StudioTool.Efek, Icons.Default.AutoAwesome, "Efek"),
+        ToolItem(StudioTool.Filter, Icons.Default.Tune, "Filter"),
+        ToolItem(StudioTool.Format, Icons.Default.AspectRatio, "Format")
     )
     Row(
-        Modifier
+        modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 8.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        items.forEach { (tool, pair) ->
-            val (icon, label) = pair
-            NavigationBarItem(
-                selected = false,
-                onClick = { onSelect(tool) },
-                icon = { Icon(icon, contentDescription = label) },
-                label = { Text(label, style = MaterialTheme.typography.labelSmall) },
-                modifier = Modifier.width(72.dp)
-            )
+        items.forEach { item ->
+            TextButton(
+                onClick = { onSelect(item.tool) },
+                modifier = Modifier.widthIn(min = 64.dp),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(item.icon, contentDescription = item.label, modifier = Modifier.size(22.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(item.label, style = MaterialTheme.typography.labelSmall)
+                }
+            }
         }
     }
 }
@@ -614,38 +617,6 @@ private fun TemplatesScreen() {
 
 /* ───────────────────── Existing feature screens (embedded) ───────────────────── */
 
-@Composable
-private fun ClipCard(c: Clip, vm: ProjectViewModel) {
-    var editing by remember(c.id) { mutableStateOf(false) }
-    var name by remember(c.id) { mutableStateOf(c.name) }
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp)) {
-            Text("#${c.index}  ${c.name}", style = MaterialTheme.typography.titleMedium)
-            Text("${fmt(c.startMs)} → ${fmt(c.endMs)} • ${fmt(c.durationMs)}")
-            Text("Status: ${c.status}")
-            if (editing) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Row {
-                    Button(onClick = {
-                        vm.renameClip(c.id, name)
-                        editing = false
-                    }) { Text("Simpan") }
-                    TextButton(onClick = { editing = false }) { Text("Batal") }
-                }
-            } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    TextButton(onClick = { editing = true }) { Text("Rename") }
-                    TextButton(onClick = { vm.deleteClip(c.id) }) { Text("Hapus") }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun RenderScreen(vm: ProjectViewModel) {
