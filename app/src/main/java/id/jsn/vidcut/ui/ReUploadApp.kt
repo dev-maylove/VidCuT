@@ -230,10 +230,11 @@ private fun StudioWorkspace(vm: ProjectViewModel, onBack: () -> Unit) {
         }
 
         // 3) TIMELINE (simplified multi-track strip)
+        val activity = LocalContext.current as? id.jsn.vidcut.MainActivity
         TimelineStrip(
             vm = vm,
             onClipSelected = { selectedClip = true },
-            onAddMedia = { (LocalContext.current as? id.jsn.vidcut.MainActivity)?.pickVideo() }
+            onAddMedia = { activity?.pickVideo() }
         )
 
         HorizontalDivider()
