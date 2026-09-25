@@ -64,7 +64,12 @@ class AutoDubbingRenderEngine(private val context: Context) {
             if (size < 0) break
             info.offset = 0
             info.size = size
-            info.flags = extractor.sampleFlags
+            // Map MediaExtractor sample flags -> MediaCodec buffer flags (lint WrongConstant)
+            info.flags = if ((extractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC) != 0) {
+                MediaCodec.BUFFER_FLAG_KEY_FRAME
+            } else {
+                0
+            }
             info.presentationTimeUs = extractor.sampleTime.coerceAtLeast(0)
             muxer.writeSampleData(track, buffer, info)
             extractor.advance()
