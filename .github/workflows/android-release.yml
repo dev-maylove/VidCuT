@@ -52,7 +52,7 @@ jobs:
             -PKEY_PASSWORD="$KEY_PASSWORD"
 
       - name: Upload release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: VidCut-${{ github.ref_name }}
           path: |
