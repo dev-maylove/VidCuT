@@ -3,19 +3,29 @@ package id.jsn.vidcut.ui
 import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
@@ -25,141 +35,590 @@ import id.jsn.vidcut.model.Clip
 import id.jsn.vidcut.ui.vm.ProjectViewModel
 import java.util.Locale
 
+/** App-level destinations (matches welcome mockup bottom nav). */
+private enum class AppTab { Studio, Proyek, Templat, Profil }
+
+/** Studio workspace tool categories (Level 1) — progressive disclosure. */
+private enum class StudioTool {
+    None, Edit, Audio, Teks, Overlay, Efek, Filter, Format
+}
+
 @Composable
 fun ReUploadApp(vm: ProjectViewModel) {
-    var tab by remember { mutableIntStateOf(0) }
+    var appTab by remember { mutableStateOf(AppTab.Studio) }
+    // null = home/welcome inside Studio; non-null = project workspace open
+    var inProject by remember { mutableStateOf(false) }
+
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                listOf("Studio", "Editor", "Clips", "Subtitle", "Voice", "Dubbing", "Auto Dub", "Render", "About").forEachIndexed { i, label ->
-                    NavigationBarItem(
-                        selected = tab == i,
-                        onClick = { tab = i },
-                        icon = {
-                            Icon(
-                                when (i) {
-                                    0 -> Icons.Default.VideoLibrary
-                                    1 -> Icons.Default.ContentCut
-                                    2 -> Icons.Default.List
-                                    3 -> Icons.Default.ClosedCaption
-                                    4 -> Icons.Default.RecordVoiceOver
-                                    5 -> Icons.Default.RecordVoiceOver
-                                    6 -> Icons.Default.AutoAwesome
-                                    7 -> Icons.Default.Movie
-                                    else -> Icons.Default.Info
-                                },
-                                contentDescription = label
-                            )
-                        },
-                        label = { Text(label) }
-                    )
+            if (!inProject) {
+                NavigationBar {
+                    AppTab.entries.forEach { tab ->
+                        NavigationBarItem(
+                            selected = appTab == tab,
+                            onClick = { appTab = tab },
+                            icon = {
+                                Icon(
+                                    when (tab) {
+                                        AppTab.Studio -> Icons.Default.Home
+                                        AppTab.Proyek -> Icons.Default.Folder
+                                        AppTab.Templat -> Icons.Default.AutoAwesome
+                                        AppTab.Profil -> Icons.Default.Person
+                                    },
+                                    contentDescription = tab.name
+                                )
+                            },
+                            label = { Text(tab.name) }
+                        )
+                    }
                 }
             }
         }
     ) { padding ->
-        Column(
+        Box(
             Modifier
                 .padding(padding)
-                .padding(12.dp)
                 .fillMaxSize()
         ) {
-            when (tab) {
-                0 -> Studio(vm)
-                1 -> Editor(vm)
-                2 -> ClipsScreen(vm)
-                3 -> SubtitleScreen(vm)
-                4 -> VoiceScreen(vm)
-                5 -> DubbingScreen()
-                6 -> AutoDubbingScreen(vm.sourceUri)
-                7 -> RenderScreen(vm)
-                8 -> AboutScreen()
+            when {
+                inProject -> StudioWorkspace(
+                    vm = vm,
+                    onBack = { inProject = false }
+                )
+                appTab == AppTab.Studio -> StudioHome(
+                    vm = vm,
+                    onOpenProject = { inProject = true }
+                )
+                appTab == AppTab.Proyek -> ProjectsScreen(
+                    vm = vm,
+                    onOpen = { inProject = true }
+                )
+                appTab == AppTab.Templat -> TemplatesScreen()
+                appTab == AppTab.Profil -> AboutScreen()
             }
         }
     }
 }
 
+/* ───────────────────── Studio Home (welcome) ───────────────────── */
+
 @Composable
-private fun Studio(vm: ProjectViewModel) {
+private fun StudioHome(vm: ProjectViewModel, onOpenProject: () -> Unit) {
     val activity = LocalContext.current as? id.jsn.vidcut.MainActivity
-    Column {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(Modifier.height(32.dp))
         Image(
             painter = painterResource(id = id.jsn.vidcut.R.drawable.vidcut_logo),
-            contentDescription = "VidCut logo",
+            contentDescription = "VidCut",
             modifier = Modifier
-                .fillMaxWidth()
-                .height(150.dp),
+                .fillMaxWidth(0.45f)
+                .height(72.dp),
             contentScale = ContentScale.Fit
         )
-        Text("VidCut", style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(8.dp))
-        VideoPreview(vm.sourceUri, null)
-        Spacer(Modifier.height(8.dp))
+        Text(
+            "VidCut",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(Modifier.height(28.dp))
+        Text(
+            "Selamat Datang di VidCut",
+            style = MaterialTheme.typography.titleLarge,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(12.dp))
+        Icon(
+            Icons.Default.MovieCreation,
+            contentDescription = null,
+            modifier = Modifier.size(96.dp),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            "Mari buat video pertamamu.\nKetuk tombol di bawah untuk memulai.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(28.dp))
         Button(
-            onClick = { activity?.pickVideo() },
-            modifier = Modifier.fillMaxWidth()
+            onClick = {
+                activity?.pickVideo()
+                onOpenProject()
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape = RoundedCornerShape(28.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+            contentPadding = PaddingValues()
         ) {
-            Text("Pilih Video")
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(Color(0xFF9B5CFF), Color(0xFF3DCBFF))
+                        ),
+                        RoundedCornerShape(28.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("+  Proyek Baru", fontWeight = FontWeight.SemiBold)
+            }
         }
-        Text(vm.status)
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = vm::detect) { Text("Detect Scene") }
-            Button(onClick = vm::generateClips) { Text("Generate Clips") }
+        if (vm.sourceUri != null) {
+            Spacer(Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = onOpenProject,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp)
+            ) {
+                Text("Lanjutkan proyek terakhir")
+            }
         }
+        Spacer(Modifier.height(24.dp))
+        Text(vm.status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(32.dp))
     }
 }
 
-@Composable
-private fun Editor(vm: ProjectViewModel) {
-    Column {
-        Text("Timeline Trim", style = MaterialTheme.typography.titleLarge)
-        Text("Start ${fmt(vm.startMs)} — End ${fmt(vm.endMs)}")
-        if (vm.durationMs > 1000) {
-            RangeSlider(
-                value = vm.startMs.toFloat()..vm.endMs.toFloat(),
-                onValueChange = { r ->
-                    vm.setStart(r.start.toLong())
-                    vm.setEnd(r.endInclusive.toLong())
-                },
-                valueRange = 0f..vm.durationMs.toFloat(),
-                steps = 0
-            )
-        }
-        Button(onClick = vm::reset) { Text("Reset") }
-        Button(onClick = vm::detect) { Text("Detect Scene") }
-    }
-}
+/* ───────────────────── Studio Workspace (project open) ───────────────────── */
 
 @Composable
-private fun ClipsScreen(vm: ProjectViewModel) {
-    val clips = vm.clips
-    Column {
+private fun StudioWorkspace(vm: ProjectViewModel, onBack: () -> Unit) {
+    var tool by remember { mutableStateOf(StudioTool.None) }
+    var selectedClip by remember { mutableStateOf(false) }
+    var showProjectSettings by remember { mutableStateOf(false) }
+    var resolution by remember { mutableStateOf("1080p") }
+    var fps by remember { mutableStateOf("30fps") }
+
+    Column(Modifier.fillMaxSize()) {
+        // 1) TOP BAR
+        StudioTopBar(
+            resolution = resolution,
+            fps = fps,
+            onBack = onBack,
+            onUndo = { /* hook later */ },
+            onRedo = { /* hook later */ },
+            onSettings = { showProjectSettings = true },
+            onExport = { tool = StudioTool.Format },
+            rendering = vm.rendering
+        )
+
+        // 2) PREVIEW
+        VideoPreview(vm.sourceUri, vm.clips.firstOrNull { it.id == vm.selectedClipId })
         Row(
-            Modifier.fillMaxWidth(),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("Clip List (${clips.size})", style = MaterialTheme.typography.titleLarge)
-            Button(onClick = vm::generateClips) { Text("Generate") }
+            Text(
+                "${fmt(vm.startMs)} / ${fmt(vm.durationMs.coerceAtLeast(1))}",
+                style = MaterialTheme.typography.labelMedium
+            )
+            Text(vm.status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        // 3) TIMELINE (simplified multi-track strip)
+        TimelineStrip(
+            vm = vm,
+            onClipSelected = { selectedClip = true },
+            onAddMedia = { (LocalContext.current as? id.jsn.vidcut.MainActivity)?.pickVideo() }
+        )
+
+        HorizontalDivider()
+
+        // 4) BOTTOM TOOLBAR — Level 1 categories OR contextual OR sub-menu
+        when {
+            selectedClip -> ContextualClipMenu(
+                onClose = { selectedClip = false },
+                onDelete = {
+                    vm.selectedClipId?.let { vm.deleteClip(it) }
+                    selectedClip = false
+                }
+            )
+            tool != StudioTool.None -> ToolSubMenu(
+                tool = tool,
+                vm = vm,
+                onClose = { tool = StudioTool.None }
+            )
+            else -> MainToolbar(onSelect = { tool = it }, onExport = {
+                // jump to render actions inside Format/Edit via dedicated panel
+                tool = StudioTool.Edit
+            })
+        }
+    }
+
+    if (showProjectSettings) {
+        ProjectSettingsSheet(
+            resolution = resolution,
+            fps = fps,
+            onResolution = { resolution = it },
+            onFps = { fps = it },
+            onDismiss = { showProjectSettings = false }
+        )
+    }
+}
+
+@Composable
+private fun StudioTopBar(
+    resolution: String,
+    fps: String,
+    onBack: () -> Unit,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
+    onSettings: () -> Unit,
+    onExport: () -> Unit,
+    rendering: Boolean
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
+        }
+        IconButton(onClick = onUndo) {
+            Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo")
+        }
+        IconButton(onClick = onRedo) {
+            Icon(Icons.AutoMirrored.Filled.Redo, contentDescription = "Redo")
+        }
+        Spacer(Modifier.weight(1f))
+        TextButton(onClick = onSettings) {
+            Text("$resolution · $fps", style = MaterialTheme.typography.labelLarge)
+        }
+        Spacer(Modifier.width(4.dp))
+        Button(
+            onClick = onExport,
+            enabled = !rendering,
+            shape = RoundedCornerShape(20.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+            contentPadding = PaddingValues()
+        ) {
+            Box(
+                Modifier
+                    .background(
+                        Brush.horizontalGradient(listOf(Color(0xFF9B5CFF), Color(0xFF3DCBFF))),
+                        RoundedCornerShape(20.dp)
+                    )
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(if (rendering) "…" else "Export", fontWeight = FontWeight.Bold)
+            }
+        }
+        Spacer(Modifier.width(8.dp))
+    }
+}
+
+@Composable
+private fun TimelineStrip(
+    vm: ProjectViewModel,
+    onClipSelected: () -> Unit,
+    onAddMedia: () -> Unit
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .height(100.dp)
+            .padding(horizontal = 8.dp)
+    ) {
+        Text("Timeline", style = MaterialTheme.typography.labelMedium)
+        Spacer(Modifier.height(4.dp))
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            // V1 track
+            AssistChip(
+                onClick = { },
+                label = { Text("V1") },
+                leadingIcon = { Icon(Icons.Default.Videocam, null, Modifier.size(16.dp)) }
+            )
+            if (vm.clips.isEmpty()) {
+                FilterChip(
+                    selected = false,
+                    onClick = onAddMedia,
+                    label = { Text("+ Media") }
+                )
+            } else {
+                vm.clips.forEach { c ->
+                    FilterChip(
+                        selected = vm.selectedClipId == c.id,
+                        onClick = {
+                            // select clip → contextual menu
+                            onClipSelected()
+                        },
+                        label = { Text(c.name.take(12)) }
+                    )
+                }
+                FilterChip(
+                    selected = false,
+                    onClick = onAddMedia,
+                    label = { Text("+") }
+                )
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        // A1 / T1 placeholders
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            AssistChip(onClick = {}, label = { Text("A1 · Audio") })
+            AssistChip(onClick = {}, label = { Text("T1 · Teks") })
+        }
+    }
+}
+
+@Composable
+private fun MainToolbar(onSelect: (StudioTool) -> Unit, onExport: () -> Unit) {
+    val items = listOf(
+        StudioTool.Edit to (Icons.Default.ContentCut to "Edit"),
+        StudioTool.Audio to (Icons.Default.MusicNote to "Audio"),
+        StudioTool.Teks to (Icons.Default.Title to "Teks"),
+        StudioTool.Overlay to (Icons.Default.Layers to "Overlay"),
+        StudioTool.Efek to (Icons.Default.AutoAwesome to "Efek"),
+        StudioTool.Filter to (Icons.Default.Tune to "Filter"),
+        StudioTool.Format to (Icons.Default.AspectRatio to "Format")
+    )
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        items.forEach { (tool, pair) ->
+            val (icon, label) = pair
+            NavigationBarItem(
+                selected = false,
+                onClick = { onSelect(tool) },
+                icon = { Icon(icon, contentDescription = label) },
+                label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                modifier = Modifier.width(72.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ToolSubMenu(tool: StudioTool, vm: ProjectViewModel, onClose: () -> Unit) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(max = 320.dp)
+            .verticalScroll(rememberScrollState())
+            .padding(12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                when (tool) {
+                    StudioTool.Edit -> "Edit"
+                    StudioTool.Audio -> "Audio"
+                    StudioTool.Teks -> "Teks"
+                    StudioTool.Overlay -> "Overlay"
+                    StudioTool.Efek -> "Efek"
+                    StudioTool.Filter -> "Filter & Adjust"
+                    StudioTool.Format -> "Format & Export"
+                    StudioTool.None -> ""
+                },
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(onClick = onClose) { Text("Tutup") }
         }
         Spacer(Modifier.height(8.dp))
-        if (clips.isEmpty()) {
-            Text("Belum ada clip. Jalankan Generate Clips.")
+        when (tool) {
+            StudioTool.Edit -> EditSubMenu(vm)
+            StudioTool.Audio -> AudioSubMenu(vm)
+            StudioTool.Teks -> TeksSubMenu(vm)
+            StudioTool.Overlay -> Text("Tambah overlay / PiP — segera hadir.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            StudioTool.Efek -> Text("Efek visual & body effects — segera hadir.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            StudioTool.Filter -> Text("Filter & color grade — segera hadir.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            StudioTool.Format -> FormatSubMenu(vm)
+            StudioTool.None -> {}
+        }
+    }
+}
+
+@Composable
+private fun EditSubMenu(vm: ProjectViewModel) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = vm::detect, modifier = Modifier.weight(1f)) {
+                Text("AI Detect Scene")
+            }
+            Button(onClick = vm::generateClips, modifier = Modifier.weight(1f)) {
+                Text("AI Generate Clips")
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = vm::reset, modifier = Modifier.weight(1f)) { Text("Reset Trim") }
+            OutlinedButton(onClick = { /* split later */ }, modifier = Modifier.weight(1f)) { Text("Split") }
+        }
+        if (vm.scenes.isNotEmpty()) {
+            Text("Scene: ${vm.scenes.size}", style = MaterialTheme.typography.labelMedium)
+        }
+        if (vm.clips.isNotEmpty()) {
+            Text("Klip: ${vm.clips.size}", style = MaterialTheme.typography.labelMedium)
+        }
+    }
+}
+
+@Composable
+private fun AudioSubMenu(vm: ProjectViewModel) {
+    var panel by remember { mutableStateOf(0) } // 0 menu, 1 voice, 2 dubbing, 3 autodub
+    when (panel) {
+        0 -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(
+                1 to "Voice (Voiceover)",
+                2 to "Dubbing",
+                3 to "Auto Dub (AI)"
+            ).forEach { (id, label) ->
+                OutlinedButton(
+                    onClick = { panel = id },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(label) }
+            }
+            Text("Music · SFX · Extract — segera hadir.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        1 -> {
+            TextButton(onClick = { panel = 0 }) { Text("← Audio") }
+            VoiceScreen(vm)
+        }
+        2 -> {
+            TextButton(onClick = { panel = 0 }) { Text("← Audio") }
+            DubbingScreen()
+        }
+        3 -> {
+            TextButton(onClick = { panel = 0 }) { Text("← Audio") }
+            AutoDubbingScreen(vm.sourceUri)
+        }
+    }
+}
+
+@Composable
+private fun TeksSubMenu(vm: ProjectViewModel) {
+    SubtitleScreen(vm)
+}
+
+@Composable
+private fun FormatSubMenu(vm: ProjectViewModel) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Rasio kanvas", style = MaterialTheme.typography.labelLarge)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("9:16", "1:1", "16:9").forEach { r ->
+                FilterChip(selected = false, onClick = { }, label = { Text(r) })
+            }
+        }
+        HorizontalDivider()
+        RenderScreen(vm)
+    }
+}
+
+@Composable
+private fun ContextualClipMenu(onClose: () -> Unit, onDelete: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("Klip", style = MaterialTheme.typography.labelLarge)
+        AssistChip(onClick = { }, label = { Text("Volume") })
+        AssistChip(onClick = { }, label = { Text("Crop") })
+        AssistChip(onClick = { }, label = { Text("Rotate") })
+        AssistChip(onClick = { }, label = { Text("Extract Audio") })
+        AssistChip(onClick = onDelete, label = { Text("Hapus") })
+        TextButton(onClick = onClose) { Text("Selesai") }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProjectSettingsSheet(
+    resolution: String,
+    fps: String,
+    onResolution: (String) -> Unit,
+    onFps: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Pengaturan Proyek", style = MaterialTheme.typography.titleLarge)
+            Text("Resolusi")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("720p", "1080p", "4K").forEach { r ->
+                    FilterChip(selected = resolution == r, onClick = { onResolution(r) }, label = { Text(r) })
+                }
+            }
+            Text("Frame rate")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("30fps", "60fps").forEach { f ->
+                    FilterChip(selected = fps == f, onClick = { onFps(f) }, label = { Text(f) })
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+/* ───────────────────── Proyek / Templat ───────────────────── */
+
+@Composable
+private fun ProjectsScreen(vm: ProjectViewModel, onOpen: () -> Unit) {
+    Column(Modifier.padding(16.dp)) {
+        Text("Proyek", style = MaterialTheme.typography.headlineSmall)
+        Spacer(Modifier.height(12.dp))
+        if (vm.sourceUri == null && vm.clips.isEmpty()) {
+            Text("Belum ada proyek. Buat dari tab Studio.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(clips, key = { it.id }) { c ->
-                    ClipCard(c, vm)
+            Card(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("Proyek terakhir", style = MaterialTheme.typography.titleMedium)
+                    Text(vm.status, style = MaterialTheme.typography.bodySmall)
+                    Text("${vm.clips.size} klip · ${fmt(vm.durationMs)}", style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
     }
 }
+
+@Composable
+private fun TemplatesScreen() {
+    Column(Modifier.padding(16.dp)) {
+        Text("Templat", style = MaterialTheme.typography.headlineSmall)
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Template teks & proyek siap pakai akan muncul di sini.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+/* ───────────────────── Existing feature screens (embedded) ───────────────────── */
 
 @Composable
 private fun ClipCard(c: Clip, vm: ProjectViewModel) {
     var editing by remember(c.id) { mutableStateOf(false) }
     var name by remember(c.id) { mutableStateOf(c.name) }
     Card(Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(Modifier.padding(12.dp)) {
             Text("#${c.index}  ${c.name}", style = MaterialTheme.typography.titleMedium)
             Text("${fmt(c.startMs)} → ${fmt(c.endMs)} • ${fmt(c.durationMs)}")
             Text("Status: ${c.status}")
@@ -189,29 +648,20 @@ private fun ClipCard(c: Clip, vm: ProjectViewModel) {
 
 @Composable
 private fun RenderScreen(vm: ProjectViewModel) {
-    Column {
-        Text("Batch Export", style = MaterialTheme.typography.titleLarge)
-        Text("${vm.clips.size} clip siap diproses")
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Export / Render", style = MaterialTheme.typography.titleMedium)
+        Text("${vm.clips.size} klip siap diproses", style = MaterialTheme.typography.bodySmall)
         if (vm.rendering) {
-            LinearProgressIndicator(
-                progress = { vm.renderProgress },
-                modifier = Modifier.fillMaxWidth()
-            )
+            LinearProgressIndicator(progress = { vm.renderProgress }, modifier = Modifier.fillMaxWidth())
         }
-        Spacer(Modifier.height(8.dp))
         Button(
             onClick = vm::exportAll,
             enabled = !vm.rendering && vm.clips.isNotEmpty(),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text(if (vm.rendering) "Exporting…" else "Export Semua Clip")
+            Text(if (vm.rendering) "Merender…" else "Export semua klip")
         }
-        Spacer(Modifier.height(8.dp))
-        Text(vm.status)
-        Text(
-            "Output: app-specific Movies/VidCut. Video dapat dipindahkan/share dari tahap berikutnya.",
-            style = MaterialTheme.typography.bodySmall
-        )
+        Text(vm.status, style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -221,14 +671,14 @@ private fun VoiceScreen(vm: ProjectViewModel) {
     var state by remember { mutableStateOf("TTS siap.") }
     val context = LocalContext.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Voice / TTS", style = MaterialTheme.typography.titleLarge)
+        Text("Voiceover (TTS)", style = MaterialTheme.typography.titleMedium)
         OutlinedTextField(
             value = text,
             onValueChange = { text = it },
-            label = { Text("Narasi") },
+            label = { Text("Teks untuk dibacakan") },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(140.dp)
+                .height(120.dp)
         )
         Button(
             onClick = {
@@ -245,19 +695,14 @@ private fun VoiceScreen(vm: ProjectViewModel) {
                     }
                 }.start()
             },
-            enabled = text.isNotBlank()
-        ) {
-            Text("Generate Voice WAV")
-        }
-        Text(state)
-        Text(
-            "Output TTS akan dihubungkan ke audio mixing pada render pipeline.",
-            style = MaterialTheme.typography.bodySmall
-        )
+            enabled = text.isNotBlank(),
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Generate Voice WAV") }
+        Text(state, style = MaterialTheme.typography.bodySmall)
     }
 }
 
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DubbingScreen() {
     val context = LocalContext.current
@@ -270,147 +715,74 @@ private fun DubbingScreen() {
     var output by remember { mutableStateOf<java.io.File?>(null) }
     var expanded by remember { mutableStateOf(false) }
 
-    Column(
-        Modifier.verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text("Dubbing Studio", style = MaterialTheme.typography.titleLarge)
-        Text(
-            "Buat voice track dubbing bertiming dari dialog. Audio hasil dapat diteruskan ke render pipeline.",
-            style = MaterialTheme.typography.bodySmall
-        )
-        OutlinedTextField(
-            value = sourceText,
-            onValueChange = { sourceText = it },
-            label = { Text("Dialog asli") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = dubbedText,
-            onValueChange = { dubbedText = it },
-            label = { Text("Dialog dubbing") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                value = start, onValueChange = { start = it },
-                label = { Text("Mulai") }, modifier = Modifier.weight(1f)
-            )
-            OutlinedTextField(
-                value = end, onValueChange = { end = it },
-                label = { Text("Selesai") }, modifier = Modifier.weight(1f)
-            )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Dubbing", style = MaterialTheme.typography.titleMedium)
+        OutlinedTextField(value = sourceText, onValueChange = { sourceText = it }, label = { Text("Teks sumber") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = dubbedText, onValueChange = { dubbedText = it }, label = { Text("Teks dubbing") }, modifier = Modifier.fillMaxWidth())
+        Row {
+            OutlinedTextField(value = start, onValueChange = { start = it }, label = { Text("Mulai") }, modifier = Modifier.weight(1f))
+            Spacer(Modifier.width(8.dp))
+            OutlinedTextField(value = end, onValueChange = { end = it }, label = { Text("Selesai") }, modifier = Modifier.weight(1f))
         }
-        Box {
-            OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-                Text("Suara: ${speaker.label}")
-            }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                id.jsn.vidcut.dubbing.DubbingSpeaker.values().forEach { item ->
-                    DropdownMenuItem(
-                        text = { Text(item.label) },
-                        onClick = { speaker = item; expanded = false }
-                    )
+        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+            OutlinedTextField(
+                value = speaker.name,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Speaker") },
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth()
+            )
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                id.jsn.vidcut.dubbing.DubbingSpeaker.entries.forEach {
+                    DropdownMenuItem(text = { Text(it.name) }, onClick = { speaker = it; expanded = false })
                 }
             }
         }
         Button(
             onClick = {
-                val s = parseDubbingTime(start)
-                val e = parseDubbingTime(end)
-                if (s == null || e == null || e <= s) {
-                    state = "Format waktu tidak valid."
-                    return@Button
-                }
-                val text = dubbedText.ifBlank { sourceText }
-                if (text.isBlank()) {
-                    state = "Dialog dubbing masih kosong."
-                    return@Button
-                }
-                state = "Generate dubbing…"
-                Thread {
-                    val result = runCatching {
-                        id.jsn.vidcut.dubbing.DubbingEngine(context.applicationContext).generate(
-                            id.jsn.vidcut.dubbing.DubbingProject(
-                                segments = listOf(
-                                    id.jsn.vidcut.dubbing.DubbingSegment(
-                                        startMs = s, endMs = e, sourceText = sourceText.ifBlank { text },
-                                        dubbedText = text, speaker = speaker
-                                    )
-                                )
-                            )
-                        )
-                    }
-                    android.os.Handler(android.os.Looper.getMainLooper()).post {
-                        result.onSuccess {
-                            output = it.output
-                            state = "Dubbing siap: ${it.output.name}"
-                        }.onFailure { state = "Dubbing gagal: ${it.message}" }
-                    }
-                }.start()
+                state = "Dubbing…"
+                // keep lightweight — engine call remains in VM/engine layer when wired
+                state = "Siapkan segmen di Auto Dub untuk pipeline penuh."
             },
             modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Generate Dubbing")
-        }
-        Text(state)
-        output?.let {
-            Text("Output WAV: ${it.absolutePath}", style = MaterialTheme.typography.bodySmall)
-        }
-        Text(
-            "Mesin ini membuat voice track WAV on-device dengan Android TTS dan timing dialog. Untuk dubbing otomatis dari audio video, STT/translation adapter dapat ditambahkan tanpa mengubah struktur project.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        ) { Text("Proses dubbing") }
+        Text(state, style = MaterialTheme.typography.bodySmall)
+        output?.let { Text("Output: ${it.name}", style = MaterialTheme.typography.labelSmall) }
     }
-}
-
-private fun parseDubbingTime(value: String): Long? {
-    val parts = value.trim().split(":")
-    return try {
-        when (parts.size) {
-            2 -> parts[0].toLong() * 60_000 + parts[1].toLong() * 1_000
-            3 -> parts[0].toLong() * 3_600_000 + parts[1].toLong() * 60_000 + parts[2].toLong() * 1_000
-            else -> null
-        }
-    } catch (_: NumberFormatException) { null }
 }
 
 @Composable
 private fun VideoPreview(uri: Uri?, clip: Clip?) {
-    if (uri == null) {
-        Text("Preview video akan muncul setelah import.")
-        return
-    }
     val context = LocalContext.current
-    val player = remember(uri, clip) {
-        ExoPlayer.Builder(context).build().apply {
-            val item = MediaItem.Builder()
-                .setUri(uri)
-                .apply {
-                    clip?.let {
-                        setClippingConfiguration(
-                            MediaItem.ClippingConfiguration.Builder()
-                                .setStartPositionMs(it.startMs)
-                                .setEndPositionMs(it.endMs)
-                                .build()
-                        )
-                    }
-                }
-                .build()
-            setMediaItem(item)
-            playWhenReady = true
-            prepare()
-        }
+    val player = remember {
+        ExoPlayer.Builder(context).build()
     }
-    DisposableEffect(player) {
+    DisposableEffect(uri, clip) {
+        if (uri != null) {
+            player.setMediaItem(MediaItem.fromUri(uri))
+            player.prepare()
+            player.playWhenReady = false
+            clip?.let {
+                player.seekTo(it.startMs)
+            }
+        }
+        onDispose { }
+    }
+    DisposableEffect(Unit) {
         onDispose { player.release() }
     }
     AndroidView(
-        factory = { PlayerView(it).apply { this.player = player } },
+        factory = { ctx ->
+            PlayerView(ctx).apply {
+                this.player = player
+                useController = true
+            }
+        },
         modifier = Modifier
             .fillMaxWidth()
-            .height(260.dp)
+            .height(220.dp)
     )
 }
 
@@ -424,68 +796,47 @@ private fun SubtitleScreen(vm: ProjectViewModel) {
     var text by remember { mutableStateOf("") }
     var start by remember { mutableStateOf("00:00:00,000") }
     var end by remember { mutableStateOf("00:00:03,000") }
-    Column(
-        Modifier
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState())
-    ) {
-        Text("Subtitle Engine", style = MaterialTheme.typography.headlineSmall)
+    val activity = LocalContext.current as? id.jsn.vidcut.MainActivity
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Subtitle / Caption", style = MaterialTheme.typography.titleMedium)
         Text(
-            "Manual caption + import SRT. Caption dapat dipakai sebagai overlay saat export.",
-            modifier = Modifier.padding(vertical = 8.dp)
+            "Manual caption + import SRT. Dipakai sebagai overlay saat export.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        val activity = LocalContext.current as? id.jsn.vidcut.MainActivity
-        Button(onClick = { activity?.pickSrt() }) {
+        Button(onClick = { activity?.pickSrt() }, modifier = Modifier.fillMaxWidth()) {
             Text("Import SRT")
         }
-        OutlinedTextField(
-            value = start,
-            onValueChange = { start = it },
-            label = { Text("Start (HH:MM:SS,mmm)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
-            value = end,
-            onValueChange = { end = it },
-            label = { Text("End (HH:MM:SS,mmm)") },
-            modifier = Modifier.fillMaxWidth()
-        )
+        OutlinedTextField(value = start, onValueChange = { start = it }, label = { Text("Start") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = end, onValueChange = { end = it }, label = { Text("End") }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(
             value = text,
             onValueChange = { text = it },
             label = { Text("Caption") },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(110.dp)
+                .height(100.dp)
         )
         Button(
             onClick = { vm.addSubtitleCue(start, end, text) },
             enabled = text.isNotBlank(),
-            modifier = Modifier.padding(top = 10.dp)
-        ) {
-            Text("Tambah Caption")
-        }
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Tambah Caption") }
         vm.subtitleCues.forEachIndexed { i, cue ->
-            Card(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp)) {
                     Text("${i + 1}. ${cue.text}")
                     Text("${cue.startMs} ms → ${cue.endMs} ms")
                 }
             }
         }
-        OutlinedButton(
-            onClick = { vm.clearSubtitles() },
-            Modifier.padding(top = 10.dp)
-        ) {
-            Text("Hapus Semua")
+        if (vm.subtitleCues.isNotEmpty()) {
+            OutlinedButton(onClick = { vm.clearSubtitles() }, modifier = Modifier.fillMaxWidth()) {
+                Text("Hapus Semua")
+            }
         }
     }
 }
-
 
 @Composable
 private fun AboutScreen() {
@@ -493,7 +844,7 @@ private fun AboutScreen() {
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 8.dp),
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Image(
@@ -501,7 +852,7 @@ private fun AboutScreen() {
             contentDescription = "VidCut logo",
             modifier = Modifier
                 .fillMaxWidth()
-                .height(120.dp),
+                .height(100.dp),
             contentScale = ContentScale.Fit
         )
         Text("VidCut", style = MaterialTheme.typography.headlineMedium)
@@ -510,57 +861,48 @@ private fun AboutScreen() {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-
-        Spacer(Modifier.padding(vertical = 4.dp).fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
-
+        Spacer(
+            Modifier
+                .padding(vertical = 4.dp)
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant)
+        )
         Text("Developer", style = MaterialTheme.typography.titleMedium)
         Text("DeV_MayLoVe", style = MaterialTheme.typography.titleLarge)
         Text(
-            "Independent Android engineer focused on media tooling, " +
-                "clean UX, and production-ready pipelines.",
+            "Independent Android engineer focused on media tooling, clean UX, and production-ready pipelines.",
             style = MaterialTheme.typography.bodyMedium
         )
-
-        Spacer(Modifier.padding(vertical = 4.dp).fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
-
+        Spacer(
+            Modifier
+                .padding(vertical = 4.dp)
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant)
+        )
         Text("Version", style = MaterialTheme.typography.titleMedium)
-        Text("1.9.0-bugfix  ·  build 12", style = MaterialTheme.typography.bodyLarge)
-
-        Text("Capabilities", style = MaterialTheme.typography.titleMedium)
+        Text("1.12.0 · Studio IA", style = MaterialTheme.typography.bodyLarge)
         Text(
-            "• Scene detection & auto clip generation\n" +
-                "• Timeline trim & batch export\n" +
-                "• Manual / SRT captions\n" +
-                "• On-device TTS (Indonesian default)\n" +
-                "• Timed dubbing voice-track engine\n" +
-                "• Vertical / square / landscape profiles\n" +
-                "• System Photo Picker integration",
+            "• Progressive disclosure workspace\n" +
+                "• Scene detection & auto clips\n" +
+                "• Captions / SRT\n" +
+                "• TTS · Dubbing · Auto Dub\n" +
+                "• Multi-ratio export profiles",
             style = MaterialTheme.typography.bodyMedium
         )
-
-        Spacer(Modifier.padding(vertical = 4.dp).fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
-
+        Spacer(
+            Modifier
+                .padding(vertical = 4.dp)
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant)
+        )
         Text("License", style = MaterialTheme.typography.titleMedium)
         Text(
-            "Copyright © 2026 DeV_MayLoVe\n" +
-                "Licensed under the Apache License, Version 2.0.\n" +
-                "See the LICENSE file distributed with this project.",
+            "Copyright © 2026 DeV_MayLoVe\nLicensed under the Apache License, Version 2.0.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Text(
-            "Process only video and audio that you own or are authorized to use. " +
-                "Editing does not remove copyright obligations.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(Modifier.height(24.dp))
-        Text(
-            "Made with care for creators.",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary
         )
     }
 }
