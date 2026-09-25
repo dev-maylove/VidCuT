@@ -1,0 +1,1 @@
+# VidCut proguard rules

@@ -1,0 +1,111 @@
+# Built application files
+*.apk
+*.ap_
+*.aab
+*.dex
+
+# Generated files
+bin/
+gen/
+out/
+release/
+debug/
+
+# Gradle
+.gradle/
+build/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+.gradletasknamecache
+
+# Local configuration (SDK path, etc.)
+local.properties
+
+# Android Studio / IntelliJ
+*.iml
+.idea/
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/gradle.xml
+.idea/assetWizardSettings.xml
+.idea/dictionaries
+.idea/libraries
+.idea/caches
+.idea/modules.xml
+.idea/navEditor.xml
+*.ipr
+*.iws
+captures/
+.externalNativeBuild/
+.cxx/
+*.hprof
+
+# Keystore — NEVER commit secrets
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+
+# OS junk
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Kotlin
+.kotlin/
+*.kotlin_module
+
+# Log & temp
+*.log
+*.tmp
+*.swp
+*~
+*.bak
+
+# NDK
+obj/
+.externalNativeBuild
+
+# Google Services (if added later with secrets)
+google-services.json
+# Uncomment if the file contains only non-secret config:
+# !app/google-services.json
+
+# Firebase / Crashlytics
+crashlytics-build.properties
+fabric.properties
+app/crashlytics/
+
+# Play Store / CI artifacts
+*.pepk
+play-store-credentials.json
+service-account.json
+
+# Test outputs
+test-results/
+reports/
+coverage/
+jacoco/
+
+# Profiling
+*.hprof
+*.trace
+
+# Node (if any tooling)
+node_modules/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/readme.md
+
+# Misc
+*.orig
+*.rej
