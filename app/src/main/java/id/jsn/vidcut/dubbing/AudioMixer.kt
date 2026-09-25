@@ -106,9 +106,8 @@ class AudioMixer {
     }
 
     private data class WavPcm(val sampleRate: Int, val samples: ShortArray) {
-        constructor(file: File) : this(read(file))
         companion object {
-            private fun read(file: File): WavPcm {
+            operator fun invoke(file: File): WavPcm {
                 val reader = MonoStereoWav.PcmWavReader(file)
                 try {
                     require(reader.channels in 1..2) { "Channel WAV tidak didukung." }

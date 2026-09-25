@@ -158,7 +158,7 @@ private fun ClipCard(c: Clip, vm: ProjectViewModel) {
     var editing by remember(c.id) { mutableStateOf(false) }
     var name by remember(c.id) { mutableStateOf(c.name) }
     Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp)) {
+        Column(Modifier = Modifier.padding(12.dp)) {
             Text("#${c.index}  ${c.name}", style = MaterialTheme.typography.titleMedium)
             Text("${fmt(c.startMs)} → ${fmt(c.endMs)} • ${fmt(c.durationMs)}")
             Text("Status: ${c.status}")
@@ -469,7 +469,7 @@ private fun SubtitleScreen(vm: ProjectViewModel) {
                     .fillMaxWidth()
                     .padding(top = 8.dp)
             ) {
-                Column(Modifier.padding(12.dp)) {
+                Column(Modifier = Modifier.padding(12.dp)) {
                     Text("${i + 1}. ${cue.text}")
                     Text("${cue.startMs} ms → ${cue.endMs} ms")
                 }

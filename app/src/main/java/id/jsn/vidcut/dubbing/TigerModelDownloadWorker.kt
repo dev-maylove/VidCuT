@@ -12,7 +12,8 @@ class TigerModelDownloadWorker(
     override suspend fun doWork(): Result {
         return try {
             TigerModelManager.downloadAll(applicationContext) { model, percent ->
-                setProgress(workDataOf("model" to model, "percent" to percent))
+                // setProgress is suspend; use setProgressAsync from non-suspend callback
+                setProgressAsync(workDataOf("model" to model, "percent" to percent))
             }
             Result.success()
         } catch (t: Throwable) {

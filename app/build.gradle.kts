@@ -90,6 +90,7 @@ dependencies {
     implementation("androidx.media3:media3-transformer:1.11.1")
     implementation("androidx.media3:media3-effect:1.11.1")
     implementation("com.alphacephei:vosk-android:0.3.75@aar")
+    implementation("net.java.dev.jna:jna:5.17.0@aar")
     implementation("com.google.mlkit:translate:17.0.3")
     implementation("com.google.ai.edge.litert:litert:2.1.5")
 }
