@@ -2,6 +2,7 @@ package id.jsn.vidcut.ui
 
 import android.net.Uri
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -157,8 +158,8 @@ private fun ClipsScreen(vm: ProjectViewModel) {
 private fun ClipCard(c: Clip, vm: ProjectViewModel) {
     var editing by remember(c.id) { mutableStateOf(false) }
     var name by remember(c.id) { mutableStateOf(c.name) }
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier = Modifier.padding(12.dp)) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Text("#${c.index}  ${c.name}", style = MaterialTheme.typography.titleMedium)
             Text("${fmt(c.startMs)} → ${fmt(c.endMs)} • ${fmt(c.durationMs)}")
             Text("Status: ${c.status}")
@@ -470,7 +471,7 @@ private fun SubtitleScreen(vm: ProjectViewModel) {
                     .fillMaxWidth()
                     .padding(top = 8.dp)
             ) {
-                Column(Modifier = Modifier.padding(12.dp)) {
+                Column(modifier = Modifier.padding(12.dp)) {
                     Text("${i + 1}. ${cue.text}")
                     Text("${cue.startMs} ms → ${cue.endMs} ms")
                 }
@@ -478,7 +479,7 @@ private fun SubtitleScreen(vm: ProjectViewModel) {
         }
         OutlinedButton(
             onClick = { vm.clearSubtitles() },
-            modifier = Modifier.padding(top = 10.dp)
+            Modifier.padding(top = 10.dp)
         ) {
             Text("Hapus Semua")
         }
@@ -510,7 +511,7 @@ private fun AboutScreen() {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        androidx.compose.material3.HorizontalDivider(Modifier = Modifier.padding(vertical = 4.dp))
+        Spacer(Modifier.padding(vertical = 4.dp).fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
 
         Text("Developer", style = MaterialTheme.typography.titleMedium)
         Text("DeV_MayLoVe", style = MaterialTheme.typography.titleLarge)
@@ -520,7 +521,7 @@ private fun AboutScreen() {
             style = MaterialTheme.typography.bodyMedium
         )
 
-        androidx.compose.material3.HorizontalDivider(Modifier = Modifier.padding(vertical = 4.dp))
+        Spacer(Modifier.padding(vertical = 4.dp).fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
 
         Text("Version", style = MaterialTheme.typography.titleMedium)
         Text("1.9.0-bugfix  ·  build 12", style = MaterialTheme.typography.bodyLarge)
@@ -537,7 +538,7 @@ private fun AboutScreen() {
             style = MaterialTheme.typography.bodyMedium
         )
 
-        androidx.compose.material3.HorizontalDivider(Modifier = Modifier.padding(vertical = 4.dp))
+        Spacer(Modifier.padding(vertical = 4.dp).fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
 
         Text("License", style = MaterialTheme.typography.titleMedium)
         Text(
