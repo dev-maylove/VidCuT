@@ -10,7 +10,7 @@ val releaseKeyPassword = providers.gradleProperty("KEY_PASSWORD").orNull
 
 android {
     namespace = "id.jsn.vidcut"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "id.jsn.vidcut"
