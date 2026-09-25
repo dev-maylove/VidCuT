@@ -164,8 +164,8 @@ object MonoStereoWav {
             out.flush()
             out.close()
             java.io.RandomAccessFile(file, "rw").use { raf ->
-                raf.seek(4L); raf.writeIntLE((36 + dataBytes).coerceAtMost(Int.MAX_VALUE).toInt())
-                raf.seek(40L); raf.writeIntLE(dataBytes.coerceAtMost(Int.MAX_VALUE).toInt())
+                raf.seek(4L); raf.writeIntLE((36L + dataBytes).coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+                raf.seek(40L); raf.writeIntLE(dataBytes.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
             }
         }
 

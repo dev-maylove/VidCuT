@@ -157,7 +157,7 @@ private fun ClipsScreen(vm: ProjectViewModel) {
 private fun ClipCard(c: Clip, vm: ProjectViewModel) {
     var editing by remember(c.id) { mutableStateOf(false) }
     var name by remember(c.id) { mutableStateOf(c.name) }
-    Card(Modifier.fillMaxWidth()) {
+    Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier = Modifier.padding(12.dp)) {
             Text("#${c.index}  ${c.name}", style = MaterialTheme.typography.titleMedium)
             Text("${fmt(c.startMs)} → ${fmt(c.endMs)} • ${fmt(c.durationMs)}")
@@ -433,7 +433,8 @@ private fun SubtitleScreen(vm: ProjectViewModel) {
             "Manual caption + import SRT. Caption dapat dipakai sebagai overlay saat export.",
             modifier = Modifier.padding(vertical = 8.dp)
         )
-        Button(onClick = { (LocalContext.current as? id.jsn.vidcut.MainActivity)?.pickSrt() }) {
+        val activity = LocalContext.current as? id.jsn.vidcut.MainActivity
+        Button(onClick = { activity?.pickSrt() }) {
             Text("Import SRT")
         }
         OutlinedTextField(
@@ -509,7 +510,7 @@ private fun AboutScreen() {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        HorizontalDivider(Modifier = Modifier.padding(vertical = 4.dp))
+        androidx.compose.material3.HorizontalDivider(Modifier = Modifier.padding(vertical = 4.dp))
 
         Text("Developer", style = MaterialTheme.typography.titleMedium)
         Text("DeV_MayLoVe", style = MaterialTheme.typography.titleLarge)
@@ -519,7 +520,7 @@ private fun AboutScreen() {
             style = MaterialTheme.typography.bodyMedium
         )
 
-        HorizontalDivider(Modifier = Modifier.padding(vertical = 4.dp))
+        androidx.compose.material3.HorizontalDivider(Modifier = Modifier.padding(vertical = 4.dp))
 
         Text("Version", style = MaterialTheme.typography.titleMedium)
         Text("1.9.0-bugfix  ·  build 12", style = MaterialTheme.typography.bodyLarge)
@@ -536,7 +537,7 @@ private fun AboutScreen() {
             style = MaterialTheme.typography.bodyMedium
         )
 
-        HorizontalDivider(Modifier = Modifier.padding(vertical = 4.dp))
+        androidx.compose.material3.HorizontalDivider(Modifier = Modifier.padding(vertical = 4.dp))
 
         Text("License", style = MaterialTheme.typography.titleMedium)
         Text(

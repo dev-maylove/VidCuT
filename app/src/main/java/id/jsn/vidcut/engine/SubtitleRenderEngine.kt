@@ -1,11 +1,11 @@
 package id.jsn.vidcut.engine
 
 import android.content.Context
-import androidx.media3.common.Effects
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.OverlayEffect
 import androidx.media3.transformer.EditedMediaItem
+import androidx.media3.transformer.Effects
 import androidx.media3.transformer.Transformer
 import id.jsn.vidcut.subtitle.SubtitleCue
 import id.jsn.vidcut.subtitle.SubtitleOverlay
